@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Boardroom Ashes</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
@@ -43,9 +48,14 @@
     --win:#42B074; --loss:#7E8896; --tie:#E3B25E; --live:#FF6B6F;
   }
   *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  :root{
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:var(--font-body); line-height:1.5;
+    font-family:var(--font-body); font-size:16px; line-height:1.5;
     padding-inline:16px;
   }
   a{color:inherit;}
@@ -259,6 +269,8 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
 </style>
+</head>
+<body>
 
 <div id="app">
   <header class="topbar">
@@ -1030,3 +1042,5 @@
   init();
 })();
 </script>
+</body>
+</html>
