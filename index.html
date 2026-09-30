@@ -182,6 +182,11 @@
   .score-line b{font-size:15px;}
   .result-note{margin-top:6px; font-size:13px; color:var(--text-soft); font-style:italic;}
   .final-badge{font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent2); font-weight:700;}
+  .event-card{border-left:4px solid var(--gold); background:var(--gold-soft);}
+  :root[data-theme="dark"] .event-card{ background:rgba(227,178,94,0.14); }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .event-card{ background:rgba(227,178,94,0.14); } }
+  .event-card .match-teams{font-size:18px;}
+  .event-meta{font-size:13.5px; color:var(--text-soft); margin-top:6px; display:flex; gap:16px; flex-wrap:wrap;}
 
   /* ---------- badges/stat tiles ---------- */
   .stat-tile{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px; box-shadow:var(--shadow);}
@@ -222,26 +227,6 @@
   .point-tile{text-align:center; padding:14px 8px; border-radius:var(--radius-m); background:var(--surface-2); border:1px solid var(--border);}
   .point-tile b{font-family:var(--font-display); font-size:22px; display:block;}
 
-  /* ---------- survey ---------- */
-  .mood-card{
-    border:2px solid var(--border); border-radius:var(--radius-m); padding:14px; cursor:pointer; background:var(--surface);
-    display:flex; gap:12px; align-items:flex-start; transition:border-color .12s ease;
-  }
-  .mood-card input{width:auto; margin-top:3px; accent-color:var(--accent2);}
-  .mood-card.selected{border-color:var(--accent2); background:var(--red-soft);}
-  :root[data-theme="dark"] .mood-card.selected{ background:rgba(255,107,111,0.14); }
-  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .mood-card.selected{ background:rgba(255,107,111,0.14); } }
-  .mood-card .title{font-weight:800; margin-bottom:3px;}
-  .mood-card .desc{font-size:13px; color:var(--text-soft);}
-  .checks{display:flex; flex-wrap:wrap; gap:8px;}
-  .check-chip{border:1px solid var(--border); border-radius:99px; padding:7px 12px; font-size:13px; cursor:pointer; background:var(--surface);}
-  .check-chip input{width:auto; margin-right:6px; accent-color:var(--accent);}
-  .check-chip.selected{background:var(--green-soft); border-color:var(--accent); color:var(--green-dark);}
-  :root[data-theme="dark"] .check-chip.selected{ background:rgba(66,176,116,0.18); color:var(--accent);}
-  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .check-chip.selected{ background:rgba(66,176,116,0.18); color:var(--accent);} }
-  .chart-box{position:relative; height:260px;}
-  .legend-row{display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 0;}
-  .legend-swatch{width:11px; height:11px; border-radius:3px; flex:none;}
 
   /* ---------- ceremony ---------- */
   .award-card{text-align:center; padding:22px 14px;}
@@ -267,6 +252,15 @@
     opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+  .organizer-fab{
+    position:fixed; right:14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width:26px; height:26px; border-radius:50%; z-index:40;
+    border:1px solid var(--border); background:var(--surface); color:var(--text-soft);
+    font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:.28; transition:opacity .15s ease, background .15s ease, color .15s ease;
+  }
+  .organizer-fab:hover, .organizer-fab:focus-visible{ opacity:.9; }
+  .organizer-fab.active{ opacity:1; background:var(--accent2); color:#fff; border-color:transparent; }
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
 </style>
 </head>
@@ -277,13 +271,9 @@
     <div class="brand">
       <div class="crest">🏏</div>
       <div>
-        <h1>The Boardroom Ashes</h1>
+        <h1>KEMBER TRI-SERIES</h1>
         <div class="sub">Internal Cricket Tournament</div>
       </div>
-    </div>
-    <div class="topbar-actions">
-      <span class="pill" id="connPill"><span class="dot"></span><span id="connLabel">Connecting…</span></span>
-      <button class="btn" id="organizerToggle" title="Organizer edit mode">🔧 Organizer Mode</button>
     </div>
   </header>
 
@@ -305,11 +295,11 @@
     <section id="tab-ceremony" class="tab-panel" hidden></section>
   </main>
 
-  <footer class="site-footer">The Boardroom Ashes · organized by people who take the cricket seriously, not themselves.</footer>
+  <footer class="site-footer">Kember Cricket Tournament · organized by people who take the cricket seriously, not themselves.</footer>
 </div>
 <div class="toast" id="toast"></div>
+<button id="organizerFab" class="organizer-fab" title="Organizer" aria-label="Toggle organizer editing">⚙</button>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -318,7 +308,7 @@
   var DEFAULT_DATA = {
     meta: {
       dates: "Oct 3–4, 2026",
-      venue: "Company Ground",
+      venue: "E.KEMBER",
       isSample: true
     },
     teams: [
@@ -329,9 +319,9 @@
     schedule: [
       { id:"m1", label:"Match 1", datetime:"2026-10-03T08:00", teamA:"A", teamB:"B", isFinal:false, status:"upcoming", result:null },
       { id:"m2", label:"Match 2", datetime:"2026-10-03T10:30", teamA:"C", teamB:"A", isFinal:false, status:"upcoming", result:null },
-      { id:"m3", label:"Match 3", datetime:"2026-10-03T13:00", teamA:"A", teamB:"C", isFinal:false, status:"upcoming", result:null },
       { id:"m4", label:"Match 4", datetime:"2026-10-04T08:00", teamA:"C", teamB:"B", isFinal:false, status:"upcoming", result:null },
-      { id:"final", label:"Final", datetime:"2026-10-04T10:30", teamA:"", teamB:"", isFinal:true, status:"upcoming", result:null }
+      { id:"final", label:"Final", datetime:"2026-10-04T10:30", teamA:"", teamB:"", isFinal:true, status:"upcoming", result:null },
+      { id:"celebration", type:"event", label:"Post-Match Celebration", datetime:"2026-10-04T13:00", location:"TBD", description:"Beer + Biryani + Prizes*" }
     ],
     players: [
       { id:"p1", name:"A. Sharma (sample)", team:"A", matches:2, runs:88, wickets:1, ducks:0 },
@@ -342,32 +332,13 @@
     ceremony: { champion:"", runnerUp:"", playerOfTournament:"", bestBatter:"", bestBowler:"", goldenDuckChampion:"", captainsExcuse:"", celebrationNote:"", celebrationPhoto:null }
   };
 
-  var SURVEY_OPTIONS = [
-    { id:"fun", icon:"🎉", title:"Full Fun Mode", desc:"Cricket, laughs, and the winning ceremony: Beer + Biryani. That's the whole vibe." },
-    { id:"celebration", icon:"🍺", title:"Celebration-Dependent Player", desc:"Happy to play… but only if Beer + Biryani shows up at the end. Priorities." },
-    { id:"trophy", icon:"🏆", title:"Trophy Hunter", desc:"Keep it a little serious. I'm mainly here for the trophy — food and drinks are optional." },
-    { id:"straight", icon:"😎", title:"Straight to the Point", desc:"No ceremony needed. Let's play, finish, and go home." },
-    { id:"strict", icon:"🚨", title:"Strict Cricket Mode", desc:"No Biryani. No Beer. No nonsense. Just cricket. I came here to win." }
-  ];
-  var SURVEY_COLORS = { fun:"#C8202F", celebration:"#C98A22", trophy:"#1F6B3E", straight:"#3E6FA6", strict:"#7C5CBF" };
-  var EXTRA_OPTIONS = [
-    { id:"cricket", label:"More cricket" },
-    { id:"prizes", label:"Better prizes" },
-    { id:"food", label:"Better food" },
-    { id:"celebration", label:"Better celebration" },
-    { id:"rules", label:"More funny rules" },
-    { id:"competitive", label:"More competitive matches" },
-    { id:"blame", label:"More opportunities to blame the captain 😂" }
-  ];
+  var SURVEY_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSewdifkETVeSmUoU1cxrEXckkisEWMg6-5qdAYjSZgLFdo8xw/viewform";
 
   /* ============================= STATE ============================= */
   var data = clone(DEFAULT_DATA);
-  var surveyDocs = [];
   var db = null, userCap = null, assetsCap = null;
   var myId = null, canEdit = false, isOwner = false, liveMode = false;
   var organizerMode = false;
-  var mySurveyChoice = null, mySurveyExtras = [];
-  var charts = {};
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
   function byId(arr, id){ for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i]; return null; }
@@ -462,7 +433,7 @@
     var html = '';
     html += '<div class="hero">';
     html += '<div class="eyebrow">15-Over Weekend Showdown · 3 Teams · 7–8 Players Each</div>';
-    html += '<h1>THE BOARDROOM ASHES</h1>';
+    html += '<h1>KEMBER TRI-SERIES</h1>';
     html += '<p class="tagline">One office. Three teams. Fifteen overs of bragging rights. May the best team survive — and the losing captain better have an excuse ready.</p>';
     html += '<div class="hero-meta">';
     html += '<div class="item"><b>'+escapeHtml(data.meta.dates)+'</b><span>Match Days</span></div>';
@@ -471,7 +442,13 @@
     html += '<div class="item"><b>'+escapeHtml(data.meta.venue)+'</b><span>Venue</span></div>';
     html += '</div>';
     html += '<div class="status-strip">'+phaseChip+'</div>';
-    if (nm){
+    if (nm && nm.type === 'event'){
+      html += '<div style="margin-top:18px">';
+      html += '<div class="eyebrow" style="color:rgba(255,255,255,.75)">Next up — '+escapeHtml(nm.label)+'</div>';
+      html += '<div class="match-teams" style="color:#fff; margin-top:4px;">🎉 📍 '+escapeHtml(nm.location||'TBD')+'</div>';
+      html += '<div id="countdownBox" class="countdown"></div>';
+      html += '</div>';
+    } else if (nm){
       html += '<div style="margin-top:18px">';
       html += '<div class="eyebrow" style="color:rgba(255,255,255,.75)">'+(nm.status==='live'?'Happening now':'Next up')+' — '+escapeHtml(nm.label)+ (nm.isFinal?' 🏆':'') +'</div>';
       html += '<div class="match-teams" style="color:#fff; margin-top:4px;">'+ (nm.teamA?escapeHtml(teamName(nm.teamA)):'TBD') +' <span style="opacity:.6">vs</span> '+ (nm.teamB?escapeHtml(teamName(nm.teamB)):'TBD') +'</div>';
@@ -554,7 +531,35 @@
     if (!m.datetime) return '';
     return new Date(m.datetime).toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
   }
+  function renderEventCard(m){
+    var html = '<div class="card match-card event-card">';
+    html += '<div class="match-head"><div>';
+    html += '<div class="eyebrow">Celebration</div>';
+    html += '<div class="match-teams">🎉 '+escapeHtml(m.label)+'</div>';
+    html += '<div class="match-time">'+matchTimeLabel(m)+'</div>';
+    html += '</div></div>';
+    html += '<div class="event-meta"><span>📍 '+escapeHtml(m.location||'TBD')+'</span><span>'+escapeHtml(m.description||'')+'</span></div>';
+    html += '<div class="muted" style="font-size:11.5px; margin-top:4px">*based on survey results</div>';
+    if (organizerMode) html += eventEditPanel(m);
+    html += '</div>';
+    return html;
+  }
+  function eventEditPanel(m){
+    var dt = m.datetime ? m.datetime.slice(0,16) : '';
+    var html = '<details class="edit-panel" style="margin-top:12px"><summary>✏️ Edit celebration</summary>';
+    html += '<form data-event="'+m.id+'" onsubmit="return false;">';
+    html += '<div class="form-grid">';
+    html += '<label class="field">Label<input name="label" value="'+escapeHtml(m.label)+'"></label>';
+    html += '<label class="field">Date & time<input type="datetime-local" name="datetime" value="'+dt+'"></label>';
+    html += '<label class="field">Location<input name="location" value="'+escapeHtml(m.location||'')+'"></label>';
+    html += '<label class="field">Details<input name="description" value="'+escapeHtml(m.description||'')+'"></label>';
+    html += '</div>';
+    html += '<div class="form-actions"><button class="btn btn-accent" data-action="save-event" data-id="'+m.id+'" type="button">Save</button></div>';
+    html += '</form></details>';
+    return html;
+  }
   function renderMatchCard(m){
+    if (m.type === 'event') return renderEventCard(m);
     var html = '<div class="card match-card '+m.status+'">';
     html += '<div class="match-head"><div>';
     html += '<div class="eyebrow">'+escapeHtml(m.label)+ (m.isFinal ? '  <span class="final-badge">🏆 FINAL</span>' : '') +'</div>';
@@ -606,7 +611,6 @@
   function renderSchedule(){
     var groups = groupByDay(data.schedule);
     var html = '';
-    if (data.meta.isSample) html += sampleBanner();
     if (organizerMode) html += '<div class="organizer-zone" style="margin-bottom:16px"><b>🔧 Organizer Mode:</b> edit any match below — times, teams, live scores, results, Player of the Match and the captain\'s excuse of the day.</div>';
     groups.forEach(function(g){
       html += '<div class="day-group" style="margin-bottom:22px"><h3>'+g.day+'</h3><div class="stack">';
@@ -618,12 +622,13 @@
 
   /* ============================= RENDER: RULES ============================= */
   var RULES = [
-    { icon:'⏱️', title:'15 Overs — No Excuses!', body:"Each team gets 15 overs. Slow bowling will NOT magically create extra overs. 15 means 15." },
-    { icon:'🎯', title:'Bowling Limit', body:"No bowler can bowl more than 3 overs. This is a team tournament — not a one-man bowling show." },
-    { icon:'🦆', title:'Golden Duck', body:"Out for 0? Congratulations — you officially qualify for the Golden Duck Award. The team gets exactly 10 seconds to laugh. After that, we move on." },
-    { icon:'⚖️', title:'Umpire Is Always Right', body:"The umpire's decision is final. Complaining for more than 10 seconds = official warning. Repeated complaints may result in additional laughs from the opposition." },
-    { icon:'🔎', title:'Lost Ball Investigation', body:"If the ball disappears, everyone helps find it. Players are not allowed to disappear along with the ball." },
-    { icon:'😎', title:'Friendly Banter Only', body:"Fun cricket banter and harmless sledging are welcome. Personal, offensive or disrespectful comments are not allowed. We're here to win the match — not start World War III." }
+    { icon:'⏱️', title:'15 Overs — No Excuses!', body:"Each team gets 15 overs. If a team uses more than 6 different bowlers, that team is awarded a bonus 3 runs." },
+    { icon:'🎯', title:'Bowling Limit', body:"No bowler can bowl more than 3 overs." },
+    { icon:'🦆', title:'Golden Duck', body:"Out for 0? Congratulations — you officially qualify for the Golden Duck Award." },
+    { icon:'⚖️', title:'Umpire Is Always Right', body:"The umpire's decision is final. " },
+    { icon:'🔰', title:'First Ball = Trial Ball (Each innings)', body:"No one can be out on the first ball of their innings. Even if you get bowled, or caught spectacularly." },
+    { icon:'🏃', title:'Run-Out Is OUT!', body:"The one exception to the trial ball — a run-out always counts, first ball or not. " },
+    { icon:'💰', title:'Entry Fee', body:"Each team must pay $100 as entry. This amount is strictly used only for energy drinks, water, prizes, and the celebration. Any amount left over or any additional amount required will be split up after the celebration." }
   ];
   function renderRules(){
     var html = '';
@@ -643,9 +648,6 @@
   }
 
   /* ============================= RENDER: STATS ============================= */
-  function sampleBanner(){
-    return '<div class="sample-banner" style="margin-bottom:14px">🧪 Showing sample data — switch on Organizer Mode to enter real results.</div>';
-  }
   function playerEditRow(p){
     var html = '<details class="edit-panel"><summary>✏️ Edit</summary><form data-player="'+p.id+'" onsubmit="return false;">';
     html += '<div class="form-grid">';
@@ -668,7 +670,6 @@
 
     var html = '';
     html += '<div class="section-title"><h2>📊 Statistics Dashboard</h2></div>';
-    if (data.meta.isSample) html += sampleBanner();
 
     html += '<div class="card" style="margin-bottom:16px"><h3>Team Standings</h3>'+renderStandingsTable(standings, false)+'</div>';
 
@@ -719,107 +720,15 @@
 
   /* ============================= RENDER: SURVEY ============================= */
   function renderSurvey(){
-    var mine = myId ? surveyDocs.find(function(d){ return d.id === myId; }) : null;
-    if (mine){ mySurveyChoice = mine.choice; mySurveyExtras = mine.extras || []; }
-
     var html = '';
     html += '<div class="section-title"><h2>📝 What Matters Most to You?</h2></div>';
-    html += '<p class="muted">Pick the option that best describes your priorities for this tournament. Answers are anonymous and update the chart below live.</p>';
-    html += '<div class="stack" id="moodCards">';
-    SURVEY_OPTIONS.forEach(function(o){
-      var sel = mySurveyChoice === o.id;
-      html += '<label class="mood-card '+(sel?'selected':'')+'" data-mood="'+o.id+'">';
-      html += '<input type="radio" name="mood" value="'+o.id+'" '+(sel?'checked':'')+'>';
-      html += '<div><div class="title">'+o.icon+' '+o.title+'</div><div class="desc">'+o.desc+'</div></div></label>';
-    });
+    html += '<p class="muted">Quick, anonymous, takes 10 seconds. Fill it out below or open it in a new tab.</p>';
+    html += '<div class="card card-flush">';
+    html += '<iframe src="'+SURVEY_FORM_URL+'?embedded=true" width="100%" height="900" frameborder="0" marginheight="0" marginwidth="0" style="display:block; border-radius:var(--radius-m);">Loading survey…</iframe>';
     html += '</div>';
-
-    html += '<div class="card" style="margin-top:16px"><h3>Optional: What would make the tournament more fun for you?</h3><div class="checks" id="extraChecks">';
-    EXTRA_OPTIONS.forEach(function(o){
-      var sel = mySurveyExtras.indexOf(o.id) > -1;
-      html += '<label class="check-chip '+(sel?'selected':'')+'" data-extra="'+o.id+'"><input type="checkbox" value="'+o.id+'" '+(sel?'checked':'')+'>'+o.label+'</label>';
-    });
-    html += '</div></div>';
-
-    html += '<div class="form-actions" style="margin-top:14px"><button class="btn btn-accent" id="submitSurvey">'+(mine?'Update my answer':'Submit my answer')+'</button><span class="muted" id="surveyHint" style="align-self:center"></span></div>';
-
-    html += '<div class="grid cols-2" style="margin-top:22px">';
-    html += '<div class="card"><h3>Mood breakdown ('+surveyDocs.length+' response'+(surveyDocs.length===1?'':'s')+')</h3><div class="chart-box"><canvas id="moodChart"></canvas></div></div>';
-    html += '<div class="card"><h3>What would help most</h3><div class="chart-box"><canvas id="extraChart"></canvas></div></div>';
-    html += '</div>';
-
+    html += '<div class="form-actions" style="margin-top:12px"><a class="btn btn-outline-accent" href="'+SURVEY_FORM_URL+'" target="_blank" rel="noopener">Open survey in a new tab ↗</a></div>';
+    html += '<p class="muted" style="margin-top:14px">Organizers: view live results anytime in the Google Form’s <b>Responses</b> tab (Summary view gives you the pie/bar charts).</p>';
     document.getElementById('tab-survey').innerHTML = html;
-
-    document.querySelectorAll('.mood-card').forEach(function(card){
-      card.addEventListener('click', function(){
-        mySurveyChoice = card.dataset.mood;
-        document.querySelectorAll('.mood-card').forEach(function(c){ c.classList.toggle('selected', c.dataset.mood === mySurveyChoice); });
-      });
-    });
-    document.querySelectorAll('.check-chip').forEach(function(chip){
-      chip.addEventListener('click', function(e){
-        var id = chip.dataset.extra;
-        var idx = mySurveyExtras.indexOf(id);
-        if (idx > -1) mySurveyExtras.splice(idx,1); else mySurveyExtras.push(id);
-        chip.classList.toggle('selected', idx === -1);
-      });
-    });
-    document.getElementById('submitSurvey').addEventListener('click', submitSurvey);
-
-    drawSurveyCharts();
-  }
-  function submitSurvey(){
-    var hint = document.getElementById('surveyHint');
-    if (!mySurveyChoice){ hint.textContent = 'Pick one option first!'; return; }
-    var payload = { choice:mySurveyChoice, extras:mySurveyExtras, ts:Date.now() };
-    if (db && myId){
-      db.collection('survey_responses').doc(myId).set(payload).then(function(){
-        showToast('Thanks — your vote is in! 🎉');
-      }).catch(function(err){
-        hint.textContent = err && err.code === 'invalid_argument' ? 'You need edit access to vote — ask the organizer to add you as a Contributor.' : 'Could not save your vote — try again.';
-      });
-    } else {
-      var idx = surveyDocs.findIndex(function(d){ return d.id === 'local-demo'; });
-      var rec = Object.assign({ id:'local-demo' }, payload);
-      if (idx > -1) surveyDocs[idx] = rec; else surveyDocs.push(rec);
-      renderSurvey();
-      showToast('Saved locally (preview mode — not shared with others).');
-    }
-  }
-  function drawSurveyCharts(){
-    if (!window.Chart) return;
-    var style = getComputedStyle(document.documentElement);
-    var textColor = style.getPropertyValue('--text').trim() || '#16211A';
-    var gridColor = style.getPropertyValue('--border').trim() || 'rgba(0,0,0,0.1)';
-    Chart.defaults.color = textColor;
-    Chart.defaults.font.family = "'Inter', sans-serif";
-
-    var moodCounts = {}; SURVEY_OPTIONS.forEach(function(o){ moodCounts[o.id]=0; });
-    surveyDocs.forEach(function(d){ if (moodCounts[d.choice] != null) moodCounts[d.choice]++; });
-    var extraCounts = {}; EXTRA_OPTIONS.forEach(function(o){ extraCounts[o.id]=0; });
-    surveyDocs.forEach(function(d){ (d.extras||[]).forEach(function(x){ if (extraCounts[x]!=null) extraCounts[x]++; }); });
-
-    if (charts.mood) charts.mood.destroy();
-    if (charts.extra) charts.extra.destroy();
-
-    var moodCtx = document.getElementById('moodChart');
-    if (moodCtx){
-      charts.mood = new Chart(moodCtx, {
-        type:'doughnut',
-        data:{ labels: SURVEY_OPTIONS.map(function(o){ return o.icon+' '+o.title; }),
-          datasets:[{ data: SURVEY_OPTIONS.map(function(o){ return moodCounts[o.id]; }), backgroundColor: SURVEY_OPTIONS.map(function(o){ return SURVEY_COLORS[o.id]; }), borderWidth:2, borderColor: style.getPropertyValue('--surface').trim() || '#fff' }] },
-        options:{ maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:11, font:{ size:11 } } } } }
-      });
-    }
-    var extraCtx = document.getElementById('extraChart');
-    if (extraCtx){
-      var sortedExtras = EXTRA_OPTIONS.slice().sort(function(a,b){ return extraCounts[b.id]-extraCounts[a.id]; });
-      charts.extra = new Chart(extraCtx, {
-        type:'bar',
-        data:{ labels: sortedExtras.map(function(o){ return o.label; }), datasets:[{ data: sortedExtras.map(function(o){ return extraCounts[o.id]; }), backgroundColor: style.getPropertyValue('--accent').trim() || '#1F6B3E', borderRadius:5 }] },
-        options:{ indexAxis:'y', maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ precision:0 }, grid:{ color: gridColor } }, y:{ grid:{ display:false } } } }
-      });
-    }
   }
 
   /* ============================= RENDER: CEREMONY ============================= */
@@ -915,6 +824,18 @@
         }
       });
     }
+    if (action === 'save-event'){
+      var eform = document.querySelector('form[data-event="'+btn.dataset.id+'"]');
+      var efd = new FormData(eform);
+      saveData(function(next){
+        var ev = byId(next.schedule, btn.dataset.id);
+        if (!ev) return;
+        ev.label = efd.get('label') || ev.label;
+        ev.datetime = efd.get('datetime') || ev.datetime;
+        ev.location = efd.get('location') || '';
+        ev.description = efd.get('description') || '';
+      });
+    }
     if (action === 'save-player'){
       var pform = document.querySelector('form[data-player="'+btn.dataset.id+'"]');
       var pfd = new FormData(pform);
@@ -962,8 +883,9 @@
     }
   });
 
-  document.getElementById('organizerToggle').addEventListener('click', function(){
-    if (!canEdit){
+  var organizerFab = document.getElementById('organizerFab');
+  if (organizerFab) organizerFab.addEventListener('click', function(){
+    if (db && !canEdit){
       var embedded = window.self !== window.top;
       showToast(embedded
         ? 'Editing is locked in embedded views (e.g. Google Sites) — open this page’s direct claude.ai link instead.'
@@ -971,16 +893,18 @@
       return;
     }
     organizerMode = !organizerMode;
-    this.classList.toggle('btn-accent', organizerMode);
-    showToast(organizerMode ? 'Organizer Mode on — you can now edit the tournament.' : 'Organizer Mode off.');
+    organizerFab.classList.toggle('active', organizerMode);
+    showToast(organizerMode ? 'Organizer Mode on' : 'Organizer Mode off');
     renderAll();
   });
 
   /* ============================= CAPABILITIES / LIVE DATA ============================= */
   function setConn(state, label){
     var pill = document.getElementById('connPill');
+    if (!pill) return;
     pill.classList.toggle('on', state === 'live');
-    document.getElementById('connLabel').textContent = label;
+    var lbl = document.getElementById('connLabel');
+    if (lbl) lbl.textContent = label;
   }
   function mergeDefaults(remote){
     var base = clone(DEFAULT_DATA);
@@ -1019,7 +943,6 @@
 
       afterUser.then(function(u){
         myId = u[0]; canEdit = !!u[1]; isOwner = !!u[2];
-        document.getElementById('organizerToggle').style.opacity = canEdit ? '1' : '.6';
 
         db.doc('tournament/config').onSnapshot(function(snap){
           if (snap.exists && snap.data()){
@@ -1030,11 +953,6 @@
           }
           renderAll();
         }, function(){ setConn('offline','Reconnecting…'); });
-
-        db.collection('survey_responses').limit(500).onSnapshot(function(qs){
-          surveyDocs = qs.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); });
-          renderSurvey();
-        }, function(){});
       });
     });
   }
