@@ -1,10 +1,16 @@
-lsi: false
-safe: true
-source: [your repo's top level directory]
-incremental: false
+# source defaults to the repo root, so leave it out (or use: source: .)
+title: SharonVille Cricket Tournament
+baseurl: ""          # use "/my-repo" if it's a project site (username.github.io/my-repo)
+url: "https://satheeshmrs.github.io"
+
+markdown: kramdown
 highlighter: rouge
-gist:
-  noscript: false
 kramdown:
   math_engine: mathjax
   syntax_highlighter: rouge
+
+safe: true
+lsi: false
+incremental: false
+gist:
+  noscript: false
